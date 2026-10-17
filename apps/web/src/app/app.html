@@ -1,0 +1,30 @@
+<a class="skip" href="#main">Pular para o conteúdo</a>
+<header class="header">
+  <div class="container header__inner">
+    <a class="brand" routerLink="/" aria-label="Ir para a página inicial">
+      <span class="brand__mark" aria-hidden="true">✈</span>
+      <span class="brand__name">Emissão Aérea</span>
+    </a>
+    <nav class="nav" aria-label="Principal">
+      <a routerLink="/" routerLinkActive="nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="nav__link">Passagens aéreas</a>
+      <a routerLink="/compras" routerLinkActive="nav__link--active" class="nav__link">Minhas compras</a>
+    </nav>
+    <div class="account">
+      @if (session.user(); as user) {
+        <span class="account__chip" [attr.title]="user.full_name">
+          <span class="account__initials" aria-hidden="true">{{ session.initials() }}</span>
+          <span class="account__balance">{{ balance() }}</span>
+        </span>
+        <button type="button" class="btn btn--sm" (click)="logout()">Sair</button>
+      } @else {
+        <a routerLink="/login" class="btn btn--sm">Entrar</a>
+      }
+    </div>
+  </div>
+</header>
+<main id="main" class="main">
+  <router-outlet />
+</main>
+<footer class="footer">
+  <div class="container small muted">Emissão Aérea · protótipo de busca e emissão de passagens em milhas e dinheiro</div>
+</footer>

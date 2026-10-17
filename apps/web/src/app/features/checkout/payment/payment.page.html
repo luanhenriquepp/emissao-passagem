@@ -1,0 +1,202 @@
+<div class="container py">
+  @if (loading()) {
+    <div class="py__center" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="muted">Carregando pagamento…</span>
+    </div>
+  } @else if (error(); as err) {
+    <div class="card empty">
+      <h3>{{ err.code === 'ORDER_NOT_FOUND' || err.status === 404 ? 'Pedido não encontrado' : 'Não foi possível carregar o pedido' }}</h3>
+      <p>{{ err.message }}</p>
+      <div class="row py__empty-actions">
+        <button type="button" class="btn btn--primary" (click)="reload()">Tentar novamente</button>
+        <a routerLink="/compras" class="btn">Minhas compras</a>
+      </div>
+    </div>
+  } @else if (order(); as o) {
+    <div class="py__layout">
+      <div class="py__main">
+        <!-- Expirado / cancelado -->
+        @if (expired()) {
+          <div class="card empty">
+            <h3>{{ o.status === 'CANCELLED' ? 'Pedido cancelado' : 'Pedido expirado' }}</h3>
+            <p>{{ o.status === 'CANCELLED' ? 'Este pedido foi cancelado.' : 'O prazo para pagamento acabou. Refaça a busca para ver os preços atuais.' }}</p>
+            <div class="row py__empty-actions">
+              <a routerLink="/" class="btn btn--primary">Nova busca</a>
+              <a routerLink="/compras" class="btn">Minhas compras</a>
+            </div>
+          </div>
+        }
+
+        @else if (o.status === 'PENDING_PAYMENT') {
+
+          <!-- Aguardando pagamento -->
+          <header class="py__head">
+            <div>
+              <h1>Pagamento</h1>
+              <p class="muted">Pague com o saldo da sua carteira. A emissão começa logo após a confirmação.</p>
+            </div>
+            <div class="py__timer" role="timer" aria-live="polite">
+              <span class="small muted">Tempo para pagar</span>
+              <strong>{{ countdown.label() }}</strong>
+            </div>
+          </header>
+
+          <section class="card py__wallet" aria-labelledby="py-wallet">
+            <h2 id="py-wallet">Saldo da carteira</h2>
+            <div class="py__amounts">
+              <div>
+                <span class="small muted">Disponível</span>
+                <strong class="py__big">{{ balance() | brl }}</strong>
+              </div>
+              <div>
+                <span class="small muted">Total do pedido</span>
+                <strong class="py__big">{{ total() | brl }}</strong>
+              </div>
+              @if (!hasBalance()) {
+                <div>
+                  <span class="small muted">Falta para cobrir</span>
+                  <strong class="py__big py__big--danger">{{ missing() | brl }}</strong>
+                </div>
+              }
+            </div>
+
+            @if (payError(); as err) {
+              <div class="alert alert--error" role="alert">{{ err.message }}</div>
+            }
+
+            <div class="py__actions">
+              <button type="button" class="btn btn--primary" [disabled]="paying() || !hasBalance()" (click)="pay()">
+                @if (paying()) {
+                  <span class="spinner" aria-hidden="true"></span>
+                }
+                Pagar com saldo
+              </button>
+              @if (!hasBalance() && !showDeposit()) {
+                <button type="button" class="btn" (click)="openDeposit()">Depositar via PIX</button>
+              }
+            </div>
+            @if (!hasBalance()) {
+              <p class="small muted">Seu saldo não cobre o total. Faça um depósito via PIX e depois pague com saldo.</p>
+            }
+          </section>
+
+          @if (showDeposit()) {
+            <section class="card py__deposit" aria-labelledby="py-deposit">
+              <h2 id="py-deposit">Depositar via PIX</h2>
+              @if (!deposit()) {
+                <label class="field" [class.field--error]="!!depositError()">
+                  <span class="field__label">Valor do depósito (R$)</span>
+                  <input class="field__input py__amount" inputmode="decimal" [value]="depositAmount()" (input)="onDepositInput($any($event.target).value)" [attr.aria-invalid]="!!depositError()" />
+                  @if (depositError(); as e) {
+                    <span class="field__error">{{ e }}</span>
+                  } @else {
+                    <span class="field__hint">Sugerido: {{ suggestedDeposit() | brl }} (a diferença que falta).</span>
+                  }
+                </label>
+                <div class="py__actions">
+                  <button type="button" class="btn btn--primary" [disabled]="depositing()" (click)="createDeposit()">
+                    @if (depositing()) {
+                      <span class="spinner" aria-hidden="true"></span>
+                    }
+                    Gerar código PIX
+                  </button>
+                  <button type="button" class="btn btn--ghost" (click)="showDeposit.set(false)">Cancelar</button>
+                </div>
+              } @else {
+                <p class="small muted">Copie o código abaixo e pague no app do seu banco. Este ambiente confirma o depósito automaticamente.</p>
+                <div class="py__pix">
+                  <code class="py__pix-code">{{ deposit()!.pix_copy_paste }}</code>
+                  <button type="button" class="btn btn--sm" (click)="copy('pix')">{{ copied() === 'pix' ? 'Copiado!' : 'Copiar código' }}</button>
+                </div>
+                @if (waitingDeposit()) {
+                  <div class="row small muted" role="status" aria-live="polite">
+                    <span class="spinner" aria-hidden="true"></span>
+                    Aguardando confirmação do depósito (cerca de {{ deposit()!.auto_confirm_seconds }} s)…
+                  </div>
+                } @else {
+                  <div class="alert alert--success small">Saldo atualizado. Agora é só pagar com saldo.</div>
+                }
+              }
+            </section>
+          }
+        }
+
+        @else if (inEmission()) {
+
+          <!-- Em emissão -->
+          <section class="card py__state" role="status" aria-live="polite">
+            <span class="spinner py__state-spinner" aria-hidden="true"></span>
+            <h2>Em emissão</h2>
+            <p class="muted">Pagamento confirmado. Estamos emitindo sua passagem com a companhia — isso costuma levar menos de um minuto.</p>
+            <p class="small muted">Pedido {{ o.display_id }}. Você pode acompanhar em <a routerLink="/compras">Minhas compras</a>.</p>
+          </section>
+        }
+
+        @else if (o.status === 'BOOKED') {
+
+          <!-- Emitida -->
+          <section class="card py__state py__state--ok">
+            <span class="py__check" aria-hidden="true">✓</span>
+            <h2>Passagem emitida!</h2>
+            <p class="muted">Enviamos a confirmação para o e-mail de contato. Apresente o localizador no check-in.</p>
+            @if (o.record_locator; as loc) {
+              <div class="py__locator">
+                <span class="small muted">Localizador</span>
+                <strong>{{ loc }}</strong>
+                <button type="button" class="btn btn--sm" (click)="copy('locator')">{{ copied() === 'locator' ? 'Copiado!' : 'Copiar localizador' }}</button>
+              </div>
+            }
+            @if (o.tickets.length > 0) {
+              <ul class="py__tickets small">
+                @for (t of o.tickets; track t.passenger_position) {
+                  <li>Passageiro {{ t.passenger_position }} · bilhete {{ t.eticket }}</li>
+                }
+              </ul>
+            }
+            <div class="row py__empty-actions">
+              <a routerLink="/compras" class="btn btn--primary">Ver minhas compras</a>
+              <a routerLink="/" class="btn">Nova busca</a>
+            </div>
+          </section>
+        }
+
+        @else if (o.status === 'BOOKING_STUCK') {
+
+          <!-- Travada -->
+          <section class="card py__state">
+            <div class="alert alert--warning">
+              <strong>A emissão está demorando mais que o normal.</strong>
+              O pagamento foi confirmado e nossa equipe está acompanhando a emissão com a companhia. Você receberá o localizador por e-mail assim que estiver pronto.
+            </div>
+            <div class="row py__empty-actions">
+              <a routerLink="/compras" class="btn btn--primary">Acompanhar em Minhas compras</a>
+            </div>
+          </section>
+        }
+
+        @else if (o.status === 'FAILED') {
+
+          <!-- Falhou -->
+          <section class="card py__state">
+            <div class="alert alert--error">
+              <strong>A emissão falhou.</strong>
+              @if (o.failure_reason) {
+                {{ o.failure_reason }}
+              } @else {
+                A companhia não confirmou a reserva.
+              }
+              O valor pago foi estornado para o seu saldo.
+            </div>
+            <div class="row py__empty-actions">
+              <a routerLink="/" class="btn btn--primary">Fazer nova busca</a>
+              <a routerLink="/compras" class="btn">Minhas compras</a>
+            </div>
+          </section>
+        }
+      </div>
+
+      <app-order-summary [order]="o" />
+    </div>
+  }
+</div>

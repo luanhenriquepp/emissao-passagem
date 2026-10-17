@@ -1,0 +1,160 @@
+<article class="pc card" [id]="'pax-' + slot().position" [class.pc--done]="slot().is_complete && !showForm()">
+  <header class="pc__head">
+    <div>
+      <strong>Passageiro {{ index() }} · {{ typeLabel() }}</strong>
+      <span class="small muted"> · {{ ageHint() }}</span>
+    </div>
+    <div class="row">
+      @if (slot().is_complete) {
+        <span class="badge badge--success">Confirmado</span>
+      }
+      @if (!showForm()) {
+        <button type="button" class="btn btn--sm" (click)="editing.set(true)">Editar</button>
+      }
+    </div>
+  </header>
+
+  @if (!showForm()) {
+    <p class="pc__summary">{{ summaryLine() }}</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="pc__form">
+      @if (favorites().length > 0) {
+        <label class="field">
+          <span class="field__label">Preencher com passageiro salvo</span>
+          <select class="field__input" (change)="applyFavorite($any($event.target).value)">
+            <option value="">Selecione…</option>
+            @for (f of favorites(); track f.id) {
+              <option [value]="f.id">{{ f.first_name }} {{ f.last_name }} · {{ f.document_number_masked }}</option>
+            }
+          </select>
+          <span class="field__hint">O número do documento precisa ser digitado novamente.</span>
+        </label>
+      }
+
+      <div class="pc__grid">
+        <label class="field" [class.field--error]="!!errorOf('nationality')">
+          <span class="field__label">Nacionalidade</span>
+          <select class="field__input" formControlName="nationality">
+            @for (n of nationalities; track n.code) {
+              <option [value]="n.code">{{ n.label }}</option>
+            }
+          </select>
+        </label>
+
+        <fieldset class="field pc__fieldset">
+          <legend class="field__label">Documento</legend>
+          <div class="pc__radios">
+            @for (t of allowedDocs(); track t) {
+              <label class="chip" [class.chip--active]="docType() === t">
+                <input type="radio" formControlName="document_type" [value]="t" class="visually-hidden" />
+                {{ t === 'CPF' ? 'CPF' : 'Passaporte' }}
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <label class="field" [class.field--error]="!!errorOf('document_number')">
+          <span class="field__label">{{ docType() === 'CPF' ? 'Número do CPF' : 'Número do passaporte' }}</span>
+          <input class="field__input" formControlName="document_number" [placeholder]="docType() === 'CPF' ? '000.000.000-00' : 'AB123456'" inputmode="numeric" autocomplete="off" (input)="onDocumentInput($any($event.target).value)" [attr.aria-invalid]="!!errorOf('document_number')" />
+          @if (errorOf('document_number'); as e) {
+            <span class="field__error">{{ e }}</span>
+          }
+        </label>
+
+        <label class="field" [class.field--error]="!!errorOf('first_name')">
+          <span class="field__label">Nome</span>
+          <input class="field__input" formControlName="first_name" autocomplete="given-name" placeholder="Como está no documento" [attr.aria-invalid]="!!errorOf('first_name')" />
+          @if (errorOf('first_name'); as e) {
+            <span class="field__error">{{ e }}</span>
+          }
+        </label>
+
+        <label class="field" [class.field--error]="!!errorOf('last_name')">
+          <span class="field__label">Sobrenome</span>
+          <input class="field__input" formControlName="last_name" autocomplete="family-name" placeholder="Como está no documento" [attr.aria-invalid]="!!errorOf('last_name')" />
+          @if (errorOf('last_name'); as e) {
+            <span class="field__error">{{ e }}</span>
+          }
+        </label>
+
+        <label class="field" [class.field--error]="!!errorOf('birth_date')">
+          <span class="field__label">Nascimento</span>
+          <input class="field__input" formControlName="birth_date" placeholder="DD/MM/AAAA" inputmode="numeric" autocomplete="bday" (input)="onBirthInput($any($event.target).value)" [attr.aria-invalid]="!!errorOf('birth_date')" />
+          @if (errorOf('birth_date'); as e) {
+            <span class="field__error">{{ e }}</span>
+          }
+        </label>
+
+        <fieldset class="field pc__fieldset" [class.field--error]="!!errorOf('gender')">
+          <legend class="field__label">Gênero</legend>
+          <div class="pc__radios">
+            <label class="chip" [class.chip--active]="form.controls.gender.value === 'M'">
+              <input type="radio" formControlName="gender" value="M" class="visually-hidden" />
+              Masculino
+            </label>
+            <label class="chip" [class.chip--active]="form.controls.gender.value === 'F'">
+              <input type="radio" formControlName="gender" value="F" class="visually-hidden" />
+              Feminino
+            </label>
+          </div>
+          @if (errorOf('gender'); as e) {
+            <span class="field__error">{{ e }}</span>
+          }
+        </fieldset>
+      </div>
+
+      @if (canBuyOutbound() || canBuyReturn()) {
+        <div class="pc__bags">
+          <span class="field__label">Bagagem extra despachada</span>
+          @if (canBuyOutbound()) {
+            <div class="pc__bag-row">
+              <div>
+                <strong>Ida</strong>
+                <span class="small muted"> · {{ baggagePricing().outbound.price_per_piece_brl | brl }} por volume · {{ baggagePricing().outbound.included_checked_count }} incluída{{ baggagePricing().outbound.included_checked_count === 1 ? '' : 's' }}</span>
+              </div>
+              <div class="pc__stepper">
+                <button type="button" (click)="stepBag('outbound', -1)" [disabled]="form.controls.extra_baggage_outbound_qty.value <= 0" aria-label="Menos bagagem na ida">−</button>
+                <span>{{ form.controls.extra_baggage_outbound_qty.value }}</span>
+                <button type="button" (click)="stepBag('outbound', 1)" [disabled]="form.controls.extra_baggage_outbound_qty.value >= baggagePricing().outbound.max_extra_per_pax" aria-label="Mais bagagem na ida">+</button>
+              </div>
+            </div>
+          }
+          @if (canBuyReturn() && baggagePricing().return; as ret) {
+            <div class="pc__bag-row">
+              <div>
+                <strong>Volta</strong>
+                <span class="small muted"> · {{ ret.price_per_piece_brl | brl }} por volume · {{ ret.included_checked_count }} incluída{{ ret.included_checked_count === 1 ? '' : 's' }}</span>
+              </div>
+              <div class="pc__stepper">
+                <button type="button" (click)="stepBag('return', -1)" [disabled]="form.controls.extra_baggage_return_qty.value <= 0" aria-label="Menos bagagem na volta">−</button>
+                <span>{{ form.controls.extra_baggage_return_qty.value }}</span>
+                <button type="button" (click)="stepBag('return', 1)" [disabled]="form.controls.extra_baggage_return_qty.value >= ret.max_extra_per_pax" aria-label="Mais bagagem na volta">+</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <label class="pc__check">
+        <input type="checkbox" formControlName="save_as_favorite" />
+        <span>Salvar passageiro para as próximas compras</span>
+      </label>
+
+      @if (serverError(); as err) {
+        <div class="alert alert--error" role="alert">{{ err.message }}</div>
+      }
+
+      <div class="pc__actions">
+        @if (slot().is_complete) {
+          <button type="button" class="btn" (click)="editing.set(false)">Cancelar</button>
+        }
+        <button type="submit" class="btn btn--primary" [disabled]="saving()">
+          @if (saving()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          Confirmar dados
+        </button>
+      </div>
+    </form>
+  }
+</article>

@@ -1,0 +1,45 @@
+<div class="field location" [class.field--error]="!!error()">
+  <label class="field__label" [for]="inputId()">{{ label() }}</label>
+  <input
+    #inputEl
+    class="field__input"
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="Selecione"
+    [id]="inputId()"
+    [value]="inputValue()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-invalid]="error() ? 'true' : null"
+    [attr.aria-controls]="inputId() + '-list'"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+  />
+  @if (error(); as err) {
+    <span class="field__error">{{ err }}</span>
+  } @else {
+    <span class="field__hint">{{ display()?.detail || 'Cidade ou aeroporto' }}</span>
+  }
+  @if (open() && suggestions().length > 0) {
+    <ul class="location__list" role="listbox" [id]="inputId() + '-list'">
+      @for (s of suggestions(); track s.code; let i = $index) {
+        <li
+          role="option"
+          class="location__item"
+          [class.location__item--active]="i === active()"
+          [attr.aria-selected]="i === active()"
+          (mousedown)="$event.preventDefault(); choose(s)"
+        >
+          <span class="location__code">{{ s.code }}</span>
+          <span class="location__text">
+            <strong>{{ s.city }}</strong>
+            <small>{{ s.detail }}</small>
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</div>

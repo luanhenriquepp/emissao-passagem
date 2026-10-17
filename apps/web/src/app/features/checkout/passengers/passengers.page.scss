@@ -1,0 +1,137 @@
+.pp {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 0 40px;
+}
+
+.pp__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 0;
+}
+
+.pp__empty-actions {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.pp__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h1 {
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.pp__timer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 14px;
+  line-height: 1.2;
+
+  strong {
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &--low {
+    border-color: var(--danger);
+
+    strong {
+      color: var(--danger);
+    }
+  }
+}
+
+.pp__warnings {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.pp__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.pp__main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp__contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.pp__phone {
+  display: flex;
+  align-items: stretch;
+}
+
+.pp__ddi {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-right: 0;
+  border-radius: 10px 0 0 10px;
+  background: #f3f5fa;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pp__phone .field__input {
+  border-radius: 0 10px 10px 0;
+}
+
+.pp__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 991px) {
+  .pp__layout {
+    grid-template-columns: 1fr;
+  }
+
+  app-order-summary {
+    order: -1;
+  }
+}
+
+@media (max-width: 767px) {
+  .pp__contact-grid {
+    grid-template-columns: 1fr;
+  }
+}

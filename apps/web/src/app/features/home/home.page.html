@@ -1,0 +1,47 @@
+<section class="container hero">
+  <div class="hero__text">
+    <p class="hero__eyebrow">Emissão automática</p>
+    <h1>Mais fontes. Mais tarifas. Mais economia.</h1>
+    <p class="muted">Buscamos em milhas, consolidadoras e tarifas públicas e emitimos o bilhete em minutos — tudo em reais.</p>
+  </div>
+  <div class="card hero__form">
+    <app-search-form />
+  </div>
+</section>
+
+@if (recent.items().length > 0) {
+  <section class="container recent">
+    <div class="row row--between">
+      <h2>Pesquisas recentes</h2>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="recent.clear()">Limpar tudo</button>
+    </div>
+    <div class="recent__grid">
+      @for (item of recent.items(); track item.id) {
+        <a class="card card--pad-sm recent__card" [routerLink]="pathOf(item)" [attr.aria-label]="'Buscar voos ' + item.origin.iata + ' para ' + item.destination.iata">
+          <div class="row row--between">
+            <span class="badge badge--info">{{ item.type === 'RT' ? 'Ida e volta' : 'Só ida' }}</span>
+            <span class="small muted">{{ pax(item) }} pax</span>
+          </div>
+          <strong class="recent__dest">{{ item.destination.name }} <span class="muted">({{ item.destination.iata }})</span></strong>
+          <span class="small muted">Saindo de {{ item.origin.name }} ({{ item.origin.iata }})</span>
+          <span class="recent__dates">{{ dates(item) }}</span>
+        </a>
+      }
+    </div>
+  </section>
+}
+
+<section class="container features">
+  <div class="card">
+    <h3>Busca assíncrona</h3>
+    <p class="muted small">Resultados chegam por partes enquanto cada fonte responde; os cards-resumo mostram o melhor "até agora".</p>
+  </div>
+  <div class="card">
+    <h3>Pedido com prazo</h3>
+    <p class="muted small">O pedido nasce como rascunho e expira em 15 minutos — você preenche passageiros e paga com saldo da carteira.</p>
+  </div>
+  <div class="card">
+    <h3>Emissão acompanhada</h3>
+    <p class="muted small">Após o pagamento, acompanhe em Minhas compras até o localizador aparecer.</p>
+  </div>
+</section>

@@ -1,0 +1,58 @@
+<section class="ts card" aria-labelledby="ts-title">
+  <h2 id="ts-title">Resumo da viagem</h2>
+
+  @if (loading()) {
+    <div class="ts__loading" role="status" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Cotando as tarifas escolhidas…</span>
+    </div>
+  } @else if (error(); as err) {
+    <div class="alert alert--error" role="alert">
+      <strong>Não foi possível cotar.</strong> {{ err.message }}
+    </div>
+    <button type="button" class="btn btn--primary" (click)="requote.emit()">{{ canRequote() ? 'Atualizar cotação' : 'Tentar novamente' }}</button>
+  } @else if (quote(); as q) {
+    <div class="ts__legs">
+      <app-fare-leg kind="ida" [fare]="q.outbound" />
+      @if (q.return; as ret) {
+        <app-fare-leg kind="volta" [fare]="ret" />
+      }
+    </div>
+
+    <dl class="ts__breakdown">
+      @for (line of q.summary; track line.type) {
+        <div class="ts__line">
+          <dt>{{ paxLine(line) }} <span class="muted small">× {{ line.total_per_pax_brl | brl }}</span></dt>
+          <dd>{{ line.total_brl | brl }}</dd>
+        </div>
+      }
+      <div class="ts__line muted">
+        <dt>Taxas e encargos (incluídos)</dt>
+        <dd>{{ q.taxes_total_brl | brl }}</dd>
+      </div>
+      <div class="ts__line">
+        <dt>Taxa de serviço</dt>
+        <dd>{{ q.service_fee_brl | brl }}</dd>
+      </div>
+      <div class="ts__line ts__line--total">
+        <dt>Total</dt>
+        <dd>{{ q.grand_total_brl | brl }}</dd>
+      </div>
+    </dl>
+
+    @if (validUntil()) {
+      <p class="small muted">Preço garantido até {{ validUntil() }}. Depois disso a cotação é refeita.</p>
+    }
+
+    @if (orderError(); as oe) {
+      <div class="alert alert--error" role="alert">{{ oe.message }}</div>
+    }
+
+    <button type="button" class="btn btn--primary btn--block" [disabled]="creating()" (click)="proceed.emit()">
+      @if (creating()) {
+        <span class="spinner" aria-hidden="true"></span>
+      }
+      Ir para os passageiros
+    </button>
+  }
+</section>

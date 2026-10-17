@@ -1,0 +1,105 @@
+<div class="container pu">
+  <header class="pu__head">
+    <div>
+      <h1>Minhas compras</h1>
+      <p class="muted">Acompanhe suas emissões e consulte localizadores.</p>
+    </div>
+    <a routerLink="/" class="btn btn--primary">Nova busca</a>
+  </header>
+
+  @if (metrics(); as m) {
+    <div class="pu__metrics">
+      <div class="card card--pad-sm pu__metric">
+        <span class="small muted">Emitidas · últimos 30 dias</span>
+        <strong>{{ m.issued_count }}</strong>
+      </div>
+      <div class="card card--pad-sm pu__metric">
+        <span class="small muted">Total pago · últimos 30 dias</span>
+        <strong>{{ m.total_paid_brl | brl }}</strong>
+      </div>
+      <div class="card card--pad-sm pu__metric">
+        <span class="small muted">Em emissão</span>
+        <strong>{{ m.in_emission_count }}</strong>
+      </div>
+    </div>
+  }
+
+  <div class="card card--pad-sm pu__toolbar">
+    <div class="pu__filters" role="tablist" aria-label="Filtrar por status">
+      @for (f of filters; track f.key) {
+        <button type="button" class="chip" role="tab" [class.chip--active]="filter() === f.key" [attr.aria-selected]="filter() === f.key" (click)="setFilter(f.key)">{{ f.label }}</button>
+      }
+    </div>
+    <label class="pu__search">
+      <span class="visually-hidden">Buscar por localizador, rota ou passageiro</span>
+      <input class="field__input" type="search" placeholder="Buscar por localizador, rota ou passageiro" (input)="onQueryInput($any($event.target).value)" />
+    </label>
+  </div>
+
+  @if (error(); as err) {
+    <div class="card empty" role="alert">
+      <h3>Não foi possível carregar suas compras</h3>
+      <p>{{ err.message }}</p>
+      <button type="button" class="btn btn--primary" (click)="reload()">Tentar novamente</button>
+    </div>
+  } @else if (loading() && items().length === 0) {
+    <div class="pu__skeletons" aria-busy="true" aria-label="Carregando compras">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton pu__skeleton"></div>
+      }
+    </div>
+  } @else if (items().length === 0) {
+    <div class="card empty">
+      @if (isFiltered()) {
+        <h3>Nenhuma compra encontrada</h3>
+        <p>Tente outro filtro ou termo de busca.</p>
+      } @else {
+        <h3>Você ainda não comprou nenhuma passagem</h3>
+        <p>Quando você emitir uma passagem, ela aparece aqui com o localizador.</p>
+        <a routerLink="/" class="btn btn--primary">Buscar voos</a>
+      }
+    </div>
+  } @else {
+    <ul class="pu__list" [attr.aria-busy]="loading()">
+      @for (item of items(); track item.order_id) {
+        <li class="card pu__item">
+          <div class="pu__item-main">
+            <div class="pu__item-top">
+              <app-status-badge [status]="item.status" [label]="item.status_label" />
+              <span class="small muted">{{ item.display_id }} · {{ item.created_at | dateShort }}</span>
+            </div>
+            <strong class="pu__route">{{ routeLabel(item) }}</strong>
+            <span class="small muted">
+              {{ airline(item.outbound.airline_code) }} · {{ item.outbound.departure_at | dateShort }}
+              @if (item.return; as ret) {
+                · volta {{ ret.departure_at | dateShort }}
+              }
+              · {{ item.passengers_summary }}
+            </span>
+          </div>
+          <div class="pu__item-side">
+            <span class="price">{{ item.total_brl | brl }}</span>
+            @if (item.record_locator; as loc) {
+              <div class="pu__locator">
+                <span class="small muted">Localizador</span>
+                <strong>{{ loc }}</strong>
+                <button type="button" class="btn btn--sm btn--ghost" (click)="copyLocator(item)">{{ copiedId() === item.order_id ? 'Copiado!' : 'Copiar' }}</button>
+              </div>
+            }
+            <a [routerLink]="['/pagamento', item.order_id]" class="btn btn--sm">{{ item.status === 'PENDING_PAYMENT' ? 'Pagar' : 'Ver pedido' }}</a>
+          </div>
+        </li>
+      }
+    </ul>
+
+    @if (pagination(); as p) {
+      @if (p.total_pages > 1) {
+        <nav class="pu__pager" aria-label="Paginação">
+          <button type="button" class="btn btn--sm" [disabled]="p.page <= 1" (click)="goTo(p.page - 1)">Anterior</button>
+          <span class="small muted">Página {{ p.page }} de {{ p.total_pages }} · {{ p.total }} pedidos</span>
+          <button type="button" class="btn btn--sm" [disabled]="p.page >= p.total_pages" (click)="goTo(p.page + 1)">Próxima</button>
+        </nav>
+      }
+    }
+  }
+</div>

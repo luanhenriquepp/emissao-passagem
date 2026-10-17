@@ -1,0 +1,73 @@
+<div class="fp">
+  <button type="button" class="btn fp__toggle" (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="fp-body">
+    Filtros
+    @if (activeCount() > 0) {
+      <span class="badge badge--info">{{ activeCount() }}</span>
+    }
+    <span class="muted small">· {{ shown() }} de {{ total() }}</span>
+  </button>
+
+  <div class="fp__body" id="fp-body" [class.fp__body--open]="open()">
+    <div class="fp__head">
+      <strong>Filtros</strong>
+      <span class="small muted">{{ shown() }} de {{ total() }} voos</span>
+      @if (activeCount() > 0) {
+        <button type="button" class="btn btn--ghost btn--sm" (click)="clear()">Limpar</button>
+      }
+    </div>
+
+    <fieldset class="fp__group">
+      <legend>Paradas</legend>
+      <div class="fp__chips">
+        @for (s of stops; track s.key) {
+          <button type="button" class="chip" [class.chip--active]="filters().stops === s.key" [attr.aria-pressed]="filters().stops === s.key" (click)="setStops(s.key)">{{ s.label }}</button>
+        }
+      </div>
+    </fieldset>
+
+    @if (airlines().length > 0) {
+      <fieldset class="fp__group">
+        <legend>Companhias</legend>
+        @for (a of airlines(); track a.code) {
+          <label class="fp__check">
+            <input type="checkbox" [checked]="filters().airlines.includes(a.code)" (change)="toggleAirline(a.code)" />
+            <span>{{ a.name }}</span>
+            <span class="muted small">{{ a.count }}</span>
+          </label>
+        }
+      </fieldset>
+    }
+
+    <fieldset class="fp__group">
+      <legend>Horário de partida</legend>
+      <div class="fp__chips">
+        @for (p of periods; track p.key) {
+          <button type="button" class="chip" [class.chip--active]="filters().departure.includes(p.key)" [attr.aria-pressed]="filters().departure.includes(p.key)" (click)="togglePeriod('departure', p.key)" [title]="p.hint">{{ p.label }}</button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="fp__group">
+      <legend>Horário de chegada</legend>
+      <div class="fp__chips">
+        @for (p of periods; track p.key) {
+          <button type="button" class="chip" [class.chip--active]="filters().arrival.includes(p.key)" [attr.aria-pressed]="filters().arrival.includes(p.key)" (click)="togglePeriod('arrival', p.key)" [title]="p.hint">{{ p.label }}</button>
+        }
+      </div>
+    </fieldset>
+
+    @if (bounds().maxPrice > bounds().minPrice) {
+      <fieldset class="fp__group">
+        <legend>Preço máximo <span class="fp__value">{{ priceLabel() }}</span></legend>
+        <input type="range" class="fp__range" [min]="bounds().minPrice" [max]="bounds().maxPrice" step="10" [value]="priceValue()" (input)="setMaxPrice($any($event.target).value)" aria-label="Preço máximo por pessoa" />
+      </fieldset>
+    }
+
+    @if (bounds().maxDuration > bounds().minDuration) {
+      <fieldset class="fp__group">
+        <legend>Duração máxima <span class="fp__value">{{ durationValue() | duration }}</span></legend>
+        <input type="range" class="fp__range" [min]="bounds().minDuration" [max]="bounds().maxDuration" step="15" [value]="durationValue()" (input)="setMaxDuration($any($event.target).value)" aria-label="Duração máxima do voo" />
+      </fieldset>
+    }
+  </div>
+</div>

@@ -1,0 +1,130 @@
+<article class="fc" [class.fc--expanded]="expanded()" [class.fc--selected]="!!selectedFareId()" [id]="'flight-' + group().key">
+  <button type="button" class="fc__main" (click)="toggle.emit()" [attr.aria-expanded]="expanded()" [attr.aria-controls]="'fares-' + group().key">
+    <div class="fc__airline">
+      <span class="fc__logo" aria-hidden="true">{{ flight().airline }}</span>
+      <div>
+        <strong>{{ airline() }}</strong>
+        <small class="muted">{{ flight().airline }} {{ flight().flight_number }}</small>
+      </div>
+    </div>
+
+    <div class="fc__times">
+      <div class="fc__time">
+        <strong>{{ flight().departure_at | hhmm }}</strong>
+        <span>{{ flight().origin }}</span>
+      </div>
+      <div class="fc__line">
+        <span class="small muted">{{ flight().duration_minutes | duration }}</span>
+        <span class="fc__bar" aria-hidden="true">
+          @for (i of stopDots(); track i) {
+            <i class="fc__dot"></i>
+          }
+        </span>
+        <span class="small" [class.fc__direct]="flight().stops_count === 0" [class.muted]="flight().stops_count > 0">{{ stops() }}</span>
+      </div>
+      <div class="fc__time">
+        <strong>
+          {{ flight().arrival_at | hhmm }}
+          @if (plusDays() > 0) {
+            <sup class="fc__plus" [attr.aria-label]="'chega ' + plusDays() + ' dia depois'">+{{ plusDays() }}</sup>
+          }
+        </strong>
+        <span>{{ flight().destination }}</span>
+      </div>
+    </div>
+
+    <div class="fc__price">
+      <small class="muted">por pessoa a partir de</small>
+      <span class="price">{{ group().minPrice | brl }}</span>
+      @if (roundTripFrom(); as rt) {
+        <small class="muted">ida e volta a partir de {{ rt | brl }}</small>
+      }
+      <span class="fc__cta">{{ expanded() ? 'Fechar tarifas' : 'Ver tarifas' }}</span>
+    </div>
+  </button>
+
+  @if (badges().length > 0 || provisional() || flight().requires_airport_change) {
+    <div class="fc__badges">
+      @for (b of badges(); track b) {
+        <span class="badge badge--success">{{ b }}</span>
+      }
+      @if (provisional()) {
+        <span class="badge badge--warning">Preço provisório</span>
+      }
+      @if (flight().requires_airport_change) {
+        <span class="badge badge--danger">Troca de aeroporto</span>
+      }
+    </div>
+  }
+
+  @if (expanded()) {
+    <div class="fc__details" [id]="'fares-' + group().key">
+      @if (itinerary().length > 0) {
+        <section class="fc__itinerary" aria-label="Itinerário">
+          @for (row of itinerary(); track $index) {
+            <div class="fc__seg">
+              <div class="fc__seg-times">
+                <strong>{{ row.segment.departure_at | hhmm }}</strong>
+                <span class="fc__seg-arrow" aria-hidden="true">→</span>
+                <strong>
+                  {{ row.segment.arrival_at | hhmm }}
+                  @if (row.plusDays > 0) {
+                    <sup class="fc__plus">+{{ row.plusDays }}</sup>
+                  }
+                </strong>
+              </div>
+              <div class="fc__seg-info">
+                <span>{{ row.segment.from }} → {{ row.segment.to }}</span>
+                <span class="muted small">
+                  {{ segmentAirline(row.segment) }} {{ row.segment.flight_number }}
+                  @if (row.segment.duration_minutes) {
+                    · {{ row.segment.duration_minutes | duration }}
+                  }
+                  @if (row.segment.aircraft_name) {
+                    · {{ row.segment.aircraft_name }}
+                  }
+                </span>
+              </div>
+            </div>
+            @if (row.waitMinutes !== null) {
+              <div class="fc__wait">
+                <span>Conexão em {{ row.segment.to }} · espera de {{ row.waitMinutes | duration }}</span>
+              </div>
+            }
+          }
+        </section>
+      }
+
+      <section class="fc__fares" aria-label="Famílias tarifárias">
+        @for (o of group().offers; track o.offer_id; let i = $index) {
+          <div class="fc__fare" [class.fc__fare--active]="o.offer_id === selectedFareId()">
+            <div class="fc__fare-head">
+              <strong>{{ fareLabel(o, i) }}</strong>
+              <span class="small muted">{{ cabin(o) }}</span>
+            </div>
+            <ul class="fc__fare-list">
+              <li>{{ baggage(o) }}</li>
+              <li>{{ o.refundable ? 'Reembolsável' : 'Não reembolsável' }}</li>
+              <li>{{ seat(o) }}</li>
+              @if (o.change_fee_waived) {
+                <li>Alteração sem multa</li>
+              }
+              @if (o.has_extra_seat) {
+                <li>Inclui assento extra</li>
+              }
+            </ul>
+            <div class="fc__fare-foot">
+              <div>
+                <span class="price">{{ o.price.total_brl | brl }}</span>
+                <small class="muted">por pessoa</small>
+              </div>
+              <button type="button" class="btn btn--sm" [class.btn--primary]="o.offer_id !== selectedFareId()" (click)="selectFare.emit(o.offer_id)">
+                {{ o.offer_id === selectedFareId() ? 'Selecionada' : 'Selecionar tarifa' }}
+              </button>
+            </div>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</article>

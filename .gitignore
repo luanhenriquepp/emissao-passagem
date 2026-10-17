@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.angular/
+*.log
+.env
+.DS_Store
+coverage/
+e2e-shots/
+.env.*
+!.env.example
+.claude/
+CLAUDE.md
+Thumbs.db
+docs/
+*.tsbuildinfo

@@ -1,0 +1,59 @@
+.ts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ts__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.ts__legs {
+  display: grid;
+  gap: 14px;
+
+  app-fare-leg + app-fare-leg {
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+}
+
+.ts__breakdown {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.ts__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  dd {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &--total {
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+    margin-top: 4px;
+    font-size: 1.1rem;
+
+    dd {
+      font-weight: 800;
+      color: var(--primary-dark);
+    }
+  }
+}

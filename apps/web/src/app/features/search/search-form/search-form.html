@@ -1,0 +1,83 @@
+<form class="sf" [class.sf--compact]="compact()" (submit)="submit($event)" novalidate aria-label="Buscar passagens">
+  <div class="sf__type" role="radiogroup" aria-label="Tipo de viagem">
+    <button type="button" class="chip" [class.chip--active]="type() === 'RT'" role="radio" [attr.aria-checked]="type() === 'RT'" (click)="setType('RT')">Ida e volta</button>
+    <button type="button" class="chip" [class.chip--active]="type() === 'OW'" role="radio" [attr.aria-checked]="type() === 'OW'" (click)="setType('OW')">Só ida</button>
+  </div>
+
+  <div class="sf__grid">
+    <div class="sf__locations">
+      <app-location-field #originField label="Origem" inputId="sf-origin" [(code)]="origin" [error]="errors().origin ?? null" />
+      <button type="button" class="sf__swap" (click)="swap()" aria-label="Trocar origem e destino" title="Trocar origem e destino">⇄</button>
+      <app-location-field #destinationField label="Destino" inputId="sf-destination" [(code)]="destination" [error]="errors().destination ?? null" />
+    </div>
+
+    <div class="field" [class.field--error]="!!errors().ida">
+      <label class="field__label" for="sf-ida">Ida</label>
+      <input #dateInput id="sf-ida" class="field__input" type="date" [value]="ida()" [min]="today" [max]="maxDate" (input)="setIda($any($event.target).value)" />
+      @if (errors().ida; as err) {
+        <span class="field__error">{{ err }}</span>
+      }
+    </div>
+
+    <div class="field" [class.field--error]="!!errors().volta" [class.field--disabled]="type() === 'OW'">
+      <label class="field__label" for="sf-volta">Volta</label>
+      <input #dateInput id="sf-volta" class="field__input" type="date" [value]="volta()" [min]="ida() || today" [max]="maxDate" [disabled]="type() === 'OW'" (input)="setVolta($any($event.target).value)" />
+      @if (errors().volta; as err) {
+        <span class="field__error">{{ err }}</span>
+      } @else if (type() === 'OW') {
+        <span class="field__hint">Só ida</span>
+      }
+    </div>
+
+    <div class="field sf__pax" [class.field--error]="!!errors().pax">
+      <span class="field__label" id="sf-pax-label">Passageiros</span>
+      <button type="button" class="field__input sf__pax-btn" [attr.aria-expanded]="paxOpen()" aria-controls="sf-pax-panel" aria-labelledby="sf-pax-label" (click)="paxOpen.set(!paxOpen())">
+        <strong>{{ paxLabel() }}</strong>
+        <small class="muted">{{ cabinLabel() }}</small>
+      </button>
+      @if (errors().pax; as err) {
+        <span class="field__error">{{ err }}</span>
+      }
+      @if (paxOpen()) {
+        <div class="sf__pax-panel" id="sf-pax-panel">
+          <div class="sf__pax-row">
+            <div><strong>Adultos</strong><br /><small class="muted">12 anos ou mais</small></div>
+            <div class="sf__stepper">
+              <button type="button" (click)="step('adt', -1)" [disabled]="!canStep('adt', -1)" aria-label="Menos adultos">−</button>
+              <span aria-live="polite">{{ adt() }}</span>
+              <button type="button" (click)="step('adt', 1)" [disabled]="!canStep('adt', 1)" aria-label="Mais adultos">+</button>
+            </div>
+          </div>
+          <div class="sf__pax-row">
+            <div><strong>Crianças</strong><br /><small class="muted">2 a 11 anos</small></div>
+            <div class="sf__stepper">
+              <button type="button" (click)="step('chd', -1)" [disabled]="!canStep('chd', -1)" aria-label="Menos crianças">−</button>
+              <span aria-live="polite">{{ chd() }}</span>
+              <button type="button" (click)="step('chd', 1)" [disabled]="!canStep('chd', 1)" aria-label="Mais crianças">+</button>
+            </div>
+          </div>
+          <div class="sf__pax-row">
+            <div><strong>Bebês</strong><br /><small class="muted">Menos de 2 anos, no colo</small></div>
+            <div class="sf__stepper">
+              <button type="button" (click)="step('inf', -1)" [disabled]="!canStep('inf', -1)" aria-label="Menos bebês">−</button>
+              <span aria-live="polite">{{ inf() }}</span>
+              <button type="button" (click)="step('inf', 1)" [disabled]="!canStep('inf', 1)" aria-label="Mais bebês">+</button>
+            </div>
+          </div>
+          <p class="small muted">Máximo de 9 passageiros no total · cada bebê precisa de um adulto</p>
+          <span class="field__label">Classe</span>
+          <div class="sf__cabins" role="radiogroup" aria-label="Classe">
+            @for (c of cabins; track c.value) {
+              <button type="button" class="chip" [class.chip--active]="cabin() === c.value" role="radio" [attr.aria-checked]="cabin() === c.value" (click)="cabin.set(c.value)">{{ c.label }}</button>
+            }
+          </div>
+          <button type="button" class="btn btn--sm btn--primary sf__pax-done" (click)="paxOpen.set(false)">Pronto</button>
+        </div>
+      }
+    </div>
+
+    <div class="sf__submit">
+      <button type="submit" class="btn btn--primary btn--block">Buscar</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,133 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.skip {
+  position: absolute;
+  left: -999px;
+  top: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  z-index: 10;
+
+  &:focus {
+    left: 8px;
+  }
+}
+
+.header {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 60px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.brand__mark {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav__link {
+  color: rgba(255, 255, 255, 0.85);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.nav__link--active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 4px 12px 4px 4px;
+  font-weight: 700;
+}
+
+.account__initials {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+}
+
+.main {
+  flex: 1;
+  padding: 24px 0 48px;
+}
+
+.footer {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 767px) {
+  .header__inner {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .nav {
+    order: 3;
+    flex: 0 0 100%;
+    overflow-x: auto;
+  }
+
+  .account {
+    margin-left: auto;
+  }
+}

@@ -1,0 +1,125 @@
+<div class="container pp">
+  @if (loading()) {
+    <div class="pp__center" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <span class="muted">Carregando seu pedido…</span>
+    </div>
+  } @else if (error(); as err) {
+    <div class="card empty">
+      <h3>{{ err.code === 'ORDER_NOT_FOUND' || err.status === 404 ? 'Pedido não encontrado' : 'Não foi possível carregar o pedido' }}</h3>
+      <p>{{ err.message }}</p>
+      <div class="row pp__empty-actions">
+        <button type="button" class="btn btn--primary" (click)="reload()">Tentar novamente</button>
+        <a routerLink="/compras" class="btn">Minhas compras</a>
+      </div>
+    </div>
+  } @else if (order(); as o) {
+    @if (expired()) {
+      <div class="card empty">
+        <h3>Pedido expirado</h3>
+        <p>O tempo para preencher os dados acabou. Os preços mudam com frequência, então é preciso refazer a busca.</p>
+        <div class="row pp__empty-actions">
+          <a [routerLink]="redoSearchPath()" class="btn btn--primary">Refazer busca</a>
+          <a routerLink="/compras" class="btn">Minhas compras</a>
+        </div>
+      </div>
+    } @else {
+      <header class="pp__head">
+        <div>
+          <h1>Dados dos passageiros</h1>
+          <p class="muted">Preencha os dados exatamente como estão nos documentos. {{ completedCount() }} de {{ slots().length }} confirmado{{ completedCount() === 1 ? '' : 's' }}.</p>
+        </div>
+        <div class="pp__timer" [class.pp__timer--low]="lowTime()" role="timer" aria-live="polite">
+          <span class="small muted">Tempo para concluir</span>
+          <strong>{{ countdown.label() }}</strong>
+        </div>
+      </header>
+
+      @if (o.status === 'PENDING_PAYMENT') {
+        <div class="alert alert--info">
+          Este pedido já foi confirmado e aguarda pagamento.
+          <a [routerLink]="['/pagamento', o.order_id]">Ir para o pagamento</a>
+        </div>
+      }
+
+      @if (o.requirements.warnings.length > 0) {
+        <div class="alert alert--warning">
+          <ul class="pp__warnings">
+            @for (w of o.requirements.warnings; track w) {
+              <li>{{ w }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="pp__layout">
+        <div class="pp__main">
+          <section class="card pp__contact" aria-labelledby="pp-contact">
+            <div class="row row--between row--wrap">
+              <h2 id="pp-contact">Contato</h2>
+              @if (session.user()) {
+                <button type="button" class="btn btn--sm" (click)="useAccountData()">Usar os dados da minha conta</button>
+              }
+            </div>
+            <p class="small muted">Enviamos a confirmação e o localizador para este contato.</p>
+            <div class="pp__contact-grid">
+              <label class="field" [class.field--error]="!!contactErrors().email">
+                <span class="field__label">E-mail</span>
+                <input class="field__input" type="email" autocomplete="email" [value]="contactEmail()" (input)="onEmailInput($any($event.target).value)" [attr.aria-invalid]="!!contactErrors().email" />
+                @if (contactErrors().email; as e) {
+                  <span class="field__error">{{ e }}</span>
+                }
+              </label>
+              <label class="field" [class.field--error]="!!contactErrors().phone">
+                <span class="field__label">Telefone</span>
+                <div class="pp__phone">
+                  <span class="pp__ddi" aria-label="DDI">+55</span>
+                  <input class="field__input" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(11) 99999-9999" [value]="contactPhone()" (input)="onPhoneInput($any($event.target).value)" [attr.aria-invalid]="!!contactErrors().phone" />
+                </div>
+                @if (contactErrors().phone; as e) {
+                  <span class="field__error">{{ e }}</span>
+                }
+              </label>
+            </div>
+          </section>
+
+          @for (s of slots(); track s.position; let i = $index) {
+            <app-passenger-card
+              [slot]="s"
+              [index]="i + 1"
+              [requirements]="o.requirements"
+              [baggagePricing]="o.baggage_pricing"
+              [outboundDate]="outboundDate()"
+              [favorites]="favorites()"
+              [draft]="draftOf(s.position)"
+              [saving]="savingPosition() === s.position"
+              [serverError]="saveErrorOf(s.position)"
+              (save)="savePassenger(s.position, $event)"
+              (changed)="onDraftChanged(s.position, $event)"
+            />
+          }
+
+          @if (confirmError(); as err) {
+            <div class="alert alert--error" role="alert">{{ err.message }}</div>
+          }
+
+          <div class="pp__footer card">
+            @if (!allComplete()) {
+              <span class="muted small">Confirme os dados de todos os passageiros para continuar.</span>
+            } @else {
+              <span class="muted small">Tudo certo! Revise o contato e siga para o pagamento.</span>
+            }
+            <button type="button" class="btn btn--primary" [disabled]="!allComplete() || confirming()" (click)="continueToPayment()">
+              @if (confirming()) {
+                <span class="spinner" aria-hidden="true"></span>
+              }
+              Continuar para pagamento
+            </button>
+          </div>
+        </div>
+
+        <app-order-summary [order]="o" />
+      </div>
+    }
+  }
+</div>

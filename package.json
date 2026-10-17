@@ -1,0 +1,27 @@
+{
+  "name": "milhas-emissao",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de emissão automática de passagens (milhas e dinheiro) — monorepo Angular + NestJS",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @milhas/contracts && npm run build -w api && npm run build -w web",
+    "build:contracts": "npm run build -w @milhas/contracts",
+    "dev:api": "npm run start:dev -w api",
+    "dev:web": "npm run start -w web",
+    "dev": "npm run build:contracts && concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "test": "npm run test -w api && npm run test -w @milhas/contracts",
+    "smoke": "node scripts/smoke.mjs",
+    "e2e:ui": "node scripts/ui-e2e.mjs",
+    "test:e2e": "npm run test:e2e -w api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

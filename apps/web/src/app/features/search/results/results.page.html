@@ -1,0 +1,171 @@
+<div class="container rp">
+  @if (!params()) {
+    <div class="card empty">
+      <h3>Busca inválida</h3>
+      <p>Os parâmetros da URL não formam uma busca válida.</p>
+      <a routerLink="/" class="btn btn--primary">Fazer uma nova busca</a>
+    </div>
+  } @else {
+    <header class="rp__head card card--pad-sm">
+      <div class="rp__head-text">
+        <h1 class="rp__title">{{ headline() }}</h1>
+        <p class="muted rp__sub">{{ subline() }}</p>
+      </div>
+      <button type="button" class="btn btn--sm" (click)="modifyOpen.set(!modifyOpen())" [attr.aria-expanded]="modifyOpen()" aria-controls="rp-modify">
+        {{ modifyOpen() ? 'Fechar' : 'Modificar busca' }}
+      </button>
+    </header>
+
+    @if (modifyOpen()) {
+      <div class="card rp__modify" id="rp-modify">
+        <app-search-form [initial]="params()" [compact]="true" (submitted)="modifyOpen.set(false)" />
+      </div>
+    }
+
+    @if (session.status() === 'unknown' || session.status() === 'loading') {
+      <div class="rp__center" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <span class="muted">Verificando sua sessão…</span>
+      </div>
+    } @else if (session.status() === 'anonymous') {
+      <div class="rp__center muted">Entre para ver os resultados desta busca.</div>
+      <app-login-modal />
+    } @else {
+      <!-- Barra de progresso da busca -->
+      @if (store.loading() && stage() === 'outbound') {
+        <div class="rp__progress" role="status" aria-live="polite">
+          <div class="rp__progress-bar"><span [style.width.%]="store.progress()"></span></div>
+          <span class="small muted">
+            Buscando
+            @if (store.airlinesEstimated().length > 0) {
+              em {{ store.airlinesEstimated().length }} companhia{{ store.airlinesEstimated().length > 1 ? 's' : '' }}
+            }
+            · {{ store.progress() }}%
+          </span>
+        </div>
+      }
+
+      @if (store.degraded() && store.complete() && stage() === 'outbound') {
+        <div class="alert alert--info small">Algumas companhias não responderam a tempo; os resultados podem estar incompletos.</div>
+      }
+
+      <!-- Faixas de seleção -->
+      @if (stage() !== 'outbound' && store.selectedOutbound(); as outOffer) {
+        @if (selectedOutboundFlight(); as outFlight) {
+          <app-selected-strip kind="ida" [offer]="outOffer" [flight]="outFlight" (change)="changeOutbound()" />
+        }
+      }
+      @if (stage() === 'summary' && store.selectedReturn(); as retOffer) {
+        @if (selectedReturnFlight(); as retFlight) {
+          <app-selected-strip kind="volta" [offer]="retOffer" [flight]="retFlight" (change)="changeReturn()" />
+        }
+      }
+
+      @if (stage() === 'summary') {
+        <div class="rp__summary">
+          <app-trip-summary
+            [quote]="store.quote()"
+            [loading]="store.quoteLoading()"
+            [error]="store.quoteError()"
+            [creating]="store.creatingOrder()"
+            [orderError]="store.orderError()"
+            (requote)="requote()"
+            (proceed)="goToPassengers()"
+          />
+          @if (searchExpired()) {
+            <div class="alert alert--warning">
+              Esta busca expirou e os preços podem ter mudado.
+              <button type="button" class="btn btn--sm" (click)="redoSearch()">Refazer busca</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <h2 class="rp__stage">{{ stageTitle() }}</h2>
+
+        @if (listError(); as err) {
+          <div class="card rp__error" role="alert">
+            @if (searchExpired()) {
+              <h3>Sua busca expirou</h3>
+              <p class="muted">Os preços mudam com frequência, então os resultados ficam disponíveis por tempo limitado.</p>
+              <button type="button" class="btn btn--primary" (click)="redoSearch()">Refazer busca</button>
+            } @else if (err.isRateLimited) {
+              <h3>Muitas buscas em pouco tempo</h3>
+              <p class="muted">{{ err.message }}@if (err.retryAfterSeconds) { Tente de novo em cerca de {{ err.retryAfterSeconds }} s.}</p>
+              <button type="button" class="btn btn--primary" (click)="retryList()">Tentar novamente</button>
+            } @else if (err.code === 'OUTBOUND_NOT_SELECTED') {
+              <h3>Selecione a ida novamente</h3>
+              <p class="muted">{{ err.message }}</p>
+              <button type="button" class="btn btn--primary" (click)="changeOutbound()">Trocar ida</button>
+            } @else {
+              <h3>Não foi possível carregar os voos</h3>
+              <p class="muted">{{ err.message }}</p>
+              <button type="button" class="btn btn--primary" (click)="retryList()">Tentar novamente</button>
+            }
+          </div>
+        } @else if (listLoading() && currentGroups().length === 0) {
+          <div class="rp__skeletons" aria-busy="true" aria-label="Carregando voos">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="skeleton rp__skeleton"></div>
+            }
+          </div>
+        } @else if (currentGroups().length === 0) {
+          <div class="card empty">
+            <h3>Nenhum voo encontrado</h3>
+            <p>Não encontramos voos para essa combinação de rota, datas e passageiros.</p>
+            <div class="row rp__empty-actions">
+              <button type="button" class="btn btn--primary" (click)="modifyOpen.set(true)">Modificar busca</button>
+              @if (stage() === 'return') {
+                <button type="button" class="btn" (click)="changeOutbound()">Trocar ida</button>
+              }
+            </div>
+          </div>
+        } @else {
+          <app-summary-cards [cards]="cards()" [complete]="listComplete()" [activeKey]="expandedKey()" (pick)="pickCard($event)" />
+
+          <div class="rp__layout">
+            <aside class="rp__aside">
+              <app-filters-panel [(filters)]="filters" [airlines]="airlines()" [bounds]="bounds()" [total]="currentGroups().length" [shown]="filtered().length" />
+            </aside>
+
+            <section class="rp__list" aria-live="polite">
+              <div class="rp__toolbar">
+                <span class="muted small">
+                  {{ filtered().length }} voo{{ filtered().length === 1 ? '' : 's' }}
+                  @if (listLoading()) {
+                    · <span class="spinner rp__mini-spinner" aria-hidden="true"></span> atualizando
+                  }
+                </span>
+                <label class="rp__sort">
+                  <span class="small muted">Ordenar por</span>
+                  <select class="field__input" [value]="sort()" (change)="setSort($any($event.target).value)">
+                    @for (s of sortOptions; track s.key) {
+                      <option [value]="s.key">{{ s.label }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+
+              @if (filtered().length === 0) {
+                <div class="card empty">
+                  <h3>Nenhum voo com os filtros atuais</h3>
+                  <button type="button" class="btn" (click)="clearFilters()">Limpar filtros</button>
+                </div>
+              }
+
+              @for (g of sorted(); track g.key) {
+                <app-flight-card
+                  [group]="g"
+                  [expanded]="expandedKey() === g.key"
+                  [badges]="badgesOf(g)"
+                  [showRoundTripFrom]="store.isRoundTrip() && stage() === 'outbound'"
+                  (toggle)="toggleGroup(g.key)"
+                  (selectFare)="selectFare($event)"
+                />
+              }
+            </section>
+          </div>
+        }
+      }
+    }
+  }
+</div>
