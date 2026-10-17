@@ -46,6 +46,8 @@ npm run e2e:ui                   # robô de UI com Playwright (exige API + web r
 TRIP=OW npm run e2e:ui           # mesma jornada, só ida
 ```
 
+No GitHub Actions (`.github/workflows/ci.yml`), todo push na `main` e todo PR rodam build, `npm test`, `npm run test:e2e` e o smoke contra a API compilada; o robô de UI roda sob demanda (Actions → CI → Run workflow → `ui_e2e`).
+
 O robô de UI (`scripts/ui-e2e.mjs`) percorre home → busca → ida → volta → resumo → passageiros (incluindo erro de idade, bagagem extra e favorito) → depósito PIX → pagamento → emissão → Minhas compras, e salva um screenshot de cada etapa em `e2e-shots/`. Ele precisa do Playwright, que não vem nas dependências: `npm i -D playwright && npx playwright install chromium`.
 
 ## Contratos principais (`/api/v1`)

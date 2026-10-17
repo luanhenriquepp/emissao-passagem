@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ui_e2e:
+        description: 'Rodar também o robô de UI (Playwright)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Ambiente determinístico para smoke e robô de UI (a emissão real é simulada).
+  ISSUANCE_OUTCOME: booked
+  ISSUANCE_DELAY_MS: '1500'
+  DEPOSIT_AUTO_CONFIRM_SECONDS: '2'
+  SEARCH_LIMIT_PER_WINDOW: '100'
+  AUTO_LOGIN: 'true'
+
+jobs:
+  build-test:
+    name: Build, testes e smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # --legacy-peer-deps: conflito de peers Angular 21 / Nest 12 / TS 6.
+      - name: Instalar dependências
+        run: npm ci --legacy-peer-deps
+
+      - name: Build (contracts → api → web)
+        run: npm run build
+
+      - name: Testes unitários (api + contracts)
+        run: npm test
+
+      - name: E2E da API (supertest)
+        run: npm run test:e2e
+
+      - name: Subir a API
+        run: |
+          nohup node apps/api/dist/main.js > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/api/health && exit 0
+            sleep 1
+          done
+          echo "API não respondeu em 30 s"; cat api.log; exit 1
+
+      - name: Smoke HTTP
+        run: npm run smoke
+
+      - name: Log da API
+        if: failure()
+        run: cat api.log
+
+  ui-e2e:
+    name: Robô de UI (Playwright)
+    if: github.event_name == 'workflow_dispatch' && inputs.ui_e2e
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Instalar dependências
+        run: |
+          npm ci --legacy-peer-deps
+          npm i --no-save --legacy-peer-deps playwright
+          npx playwright install --with-deps chromium
+
+      - name: Build de contracts e API
+        run: |
+          npm run build:contracts
+          npm run build -w api
+
+      - name: Subir API e web
+        run: |
+          nohup node apps/api/dist/main.js > api.log 2>&1 &
+          nohup npm run dev:web > web.log 2>&1 &
+          for i in $(seq 1 120); do
+            curl -fsS http://localhost:3000/api/health > /dev/null && curl -fsS http://localhost:4200/ > /dev/null && exit 0
+            sleep 1
+          done
+          echo "API/web não responderam em 120 s"; tail -50 api.log web.log; exit 1
+
+      - name: Ida e volta
+        run: npm run e2e:ui
+
+      - name: Só ida
+        run: npm run e2e:ui
+        env:
+          TRIP: OW
+
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-shots
+          path: e2e-shots/
+          if-no-files-found: ignore
+
+      - name: Logs
+        if: failure()
+        run: tail -100 api.log web.log
